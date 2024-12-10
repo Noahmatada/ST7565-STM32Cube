@@ -19,17 +19,22 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library.
 
 // some of this code was written by <arsalan.mselep@uetpeshawar.edu.pk> originally; it is in the public domain.
+// modified 2024 by Noah Adams
 */
 
 #include <stdint.h>
-#include "main.h"
+#include "stm32f4xx_hal.h"
+#include "common_cog.h"
 
 #define swap(a, b) { uint8_t t = a; a = b; b = t; }
 
 #define BLACK 1
 #define WHITE 0
 
-#define SPI_PORT hspi2
+extern SPI_HandleTypeDef SPI_PORT;
+
+#define LCD_WIDTH 128
+#define LCD_HEIGHT 64
 
 #define CMD_DISPLAY_OFF   0xAE
 #define CMD_DISPLAY_ON    0xAF
