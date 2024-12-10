@@ -1,75 +1,156 @@
-# ST7565-ST7565P-COG-3-Inch-LCD-Library-for-STM32Cube-IDE
-ST7565/ST7565P COG 3" LCD Library for STM32Cube IDE. Easy integration, versatile functionality, optimized performance. Start coding with our open-source project. Join our community for updates and support. Unlock the full potential of COG LCD displays. Happy coding!
+# ST7565 3-inch chip-on-glass LCD display library for STM32Cube
 
+## Getting started (example)
+Step #1:
+In common_cog.h include file (for example):
+```
+#ifndef COMMON_COG_H
+#define COMMON_COG_H
 
-/*************** NOTE ****************/
+/* SPI */
+#define SPI_PORT hspi1
 
-facebook page:
+/* GPIO */
+#define cog_port GPIOA
+#define COG_GPIO_CLK_ENABLE()                  __HAL_RCC_GPIOA_CLK_ENABLE()
+#define cog_RS GPIO_PIN_8
+#define cog_RST GPIO_PIN_9
+#define cog_CS GPIO_PIN_10
 
-https://www.facebook.com/radioactiveengineer
+#endif // COMMON_COG_H
+```
 
-subscribe to my channel:
+Step 2:
+spi.h:
+```
+#ifndef SPI_H
+#define SPI_H
 
-https://www.youtube.com/@radioactiveengineer
+#include "stm32f4xx_hal.h"
 
-My patreon: 
+#include "common_cog.h"
 
-patreon.com/RadioactiveEngineer
+ void spi_init(void);
 
-I have poured my personal time and effort into developing this library and extensively testing it with the ST7565/ST7565P controller. To make my content more versatile and appealing, I strive to create engaging tutorials, project showcases, and informative code examples that highlight the unique benefits and features of my library. I believe in the power of visuals, so I incorporate images, diagrams, and videos to enhance the presentation and simplify complex concepts. By sharing my personal journey and experiences, I aim to connect with my audience on a deeper level, showcasing my passion and the challenges I've overcome. I value the input and collaboration of my audience, and I encourage them to provide feedback, suggestions, and ideas to further improve the library. Together, we can build a supportive community where knowledge is shared, and everyone benefits. If you find my content valuable and would like to support my efforts, please consider following my social media profiles, supporting me through my patreon or subscribing to my newsletter. Your support will enable me to continue developing and enhancing the library, ensuring its availability to all who can benefit from it.
+#endif // SPI_H
+```
 
-/************** Tutorial Starts Here ***************/
+spi.c:
+```
+#include "spi.h"
 
+/* Private variables ---------------------------------------------------------*/
+SPI_HandleTypeDef SPI_PORT;
 
-Follow these steps to make this library working -> 
+/* Private function prototypes -----------------------------------------------*/
+// void SystemClock_Config(void);
+static void MX_SPI1_Init(void);
 
-STEP # 01:
+void spi_init(void) {
 
-Add this library header to your main.h file:
+  MX_SPI1_Init();
 
-#include "ST7565.h"
+}
 
-STEP # 02:
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    // Error_Handler();
+  }
+}
 
-you can select pin of your choice I have chosen these for my program:
+/**
+  * Initializes the Global MSP.
+  */
+void HAL_MspInit(void) // probably not necessary
+{
 
-for the control lines I have used the following pins:
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
+  __HAL_RCC_PWR_CLK_ENABLE();
 
-RS  -> PD8 
-CS  -> PD9 
-RST -> PD10
+  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_0);
 
-and for the data and clock lines I have used these pins:
+  /* System interrupt init*/
+}
 
-SDA -> PB15
-SCL -> PB13
+/**
+* @brief SPI MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hspi: SPI handle pointer
+* @retval None
+*/
+void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(hspi->Instance==SPI1)
+  {
+    /* Peripheral clock enable */
+    __HAL_RCC_SPI1_CLK_ENABLE();
 
-STEP # 03:
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /**SPI1 GPIO Configuration
+    PA5     ------> SPI1_SCK
+    PA7     ------> SPI1_MOSI
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_7;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  }
 
-select the correct spi you are using, I am using spi2 in this example you can select yours in header file with the name:
+}
 
-#define SPI_PORT hspi2
+// /**
+//   * @brief  This function is executed in case of error occurrence.
+//   * @retval None
+//   */
+// void Error_Handler(void)
+// {
+//   /* USER CODE BEGIN Error_Handler_Debug */
+//   /* User can add his own implementation to report the HAL error return state */
+//   __disable_irq();
+//   while (1)
+//   {
+//   }
+//   /* USER CODE END Error_Handler_Debug */
+// }
+```
 
-STEP # 04:
+Step #3:
+In main():
+```
+  spi_init();
+  ST7565_init();
 
-add this before the loop for initialization :
+  char str1[] = "How";
+  ST7565_drawstring_anywhere((LCD_WIDTH/2)-((strlen(str1)/2)*6), (LCD_HEIGHT*3/3)-15, str1);
+  char str2[] = "much";
+  ST7565_drawstring_anywhere((LCD_WIDTH/2)-((strlen(str2)/2)*6),  (LCD_HEIGHT*2/3)-15, str2);
+  char str3[] = "wood";
+  ST7565_drawstring_anywhere((LCD_WIDTH/2)-((strlen(str3)/2)*6),  (LCD_HEIGHT/3)-15, str3);
 
-  void ST7565_init(void);
+  //ST7565_drawstring(0,0, "How much wood would a woodchuck chuck if a woodchuck could chuck wood?	");
 
-STEP # 05:
-
-Add this to your int main() function to start displaying Strings (REMEMBER TO ADD this function at the end of your display program updateDisplay(); just like I did in the example below):
-
-
-	char tubewell[] = "This program is";
-	ST7565_drawstring_anywhere((LCD_WIDTH/2)-((strlen(tubewell)/2)*6), (LCD_HEIGHT*3/3)-15, tubewell);
-	char monitoring[] = "Developed by: ";
-	ST7565_drawstring_anywhere((LCD_WIDTH/2)-((strlen(monitoring)/2)*6),  (LCD_HEIGHT*2/3)-15, monitoring);
-	char system[] = "ARSALAN ALI";
-	ST7565_drawstring_anywhere((LCD_WIDTH/2)-((strlen(system)/2)*6),  (LCD_HEIGHT/3)-15, system);
-
-	updateDisplay();
-
-STEP # 06:
-
-ENJOY!!!!!!!!!!!!!
+  updateDisplay();
+```
